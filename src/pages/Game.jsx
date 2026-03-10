@@ -1,19 +1,34 @@
 import { useState, useEffect } from 'react'
 import { useAccount, useWriteContract, useWaitForTransactionReceipt } from 'wagmi'
-import { config } from '../wagmi'
-import { ERC20_ABI, FOUNDER_WALLET, TOKEN_ADDRESS } from '../abi/token'
+import { config, fetchConfig } from '../config'
+import { ERC20_ABI } from '../abi/token'
 
-const API_BASE = config.apiBase
+// 默认 API 地址
+const DEFAULT_API_BASE = import.meta.env.VITE_API_BASE || 'http://localhost:3001'
 
 export default function Game() {
   const { address, isConnected } = useAccount()
   const { data: hash, isPending, writeContract, error: writeError } = useWriteContract()
   const { isLoading: isConfirming, isSuccess: isConfirmed } = useWaitForTransactionReceipt({ hash })
+  
   const [player, setPlayer] = useState(null)
   const [feedAmount, setFeedAmount] = useState(1)
   const [loading, setLoading] = useState(false)
   const [message, setMessage] = useState('')
+  const [gameConfig, setGameConfig] = useState(config)
+  const [apiBase, setApiBase] = useState(DEFAULT_API_BASE)
 
+  // 页面加载时从后端获取配置
+  useEffect(() => {
+    const loadConfig = async () => {
+      const cfg = await fetchConfig(DEFAULT_API_BASE)
+      setGameConfig(cfg)
+      setApiBase(cfg.apiBase || DEFAULT_API_BASE)
+    }
+    loadConfig()
+  }, [])
+
+  // 页面加载时获取玩家数据
   useEffect(() => {
     if (address) {
       fetchPlayerData()
@@ -22,7 +37,7 @@ export default function Game() {
 
   const fetchPlayerData = async () => {
     try {
-      const res = await fetch(`${API_BASE}/api/players/${address}`)
+      const res = await fetch(`${apiBase}/api/player/${address}`)
       const data = await res.json()
       if (data.success) {
         setPlayer(data.data)
@@ -41,14 +56,19 @@ export default function Game() {
     setMessage('')
 
     try {
-      // 第一步：调用合约把代币转到创始人钱包
-      const amountWei = BigInt(feedAmount) * BigInt(10 ** 18) // 假设 18 位小数
+      // 从后端配置获取代币地址和创始人钱包
+      const tokenAddress = gameConfig.tokenAddress
+      const founderWallet = gameConfig.founderWallet
+      const decimals = gameConfig.tokenDecimals || 18
+      
+      // 计算代币数量 (考虑小数位)
+      const amountWei = BigInt(feedAmount) * BigInt(10 ** decimals)
 
       writeContract({
-        address: TOKEN_ADDRESS,
+        address: tokenAddress,
         abi: ERC20_ABI,
         functionName: 'transfer',
-        args: [FOUNDER_WALLET, amountWei]
+        args: [founderWallet, amountWei]
       })
 
       setMessage('正在转账代币到创始人钱包，请确认交易...')
@@ -69,14 +89,14 @@ export default function Game() {
   // 提交交易哈希到后端
   const submitFeedTx = async (txHash) => {
     try {
-      const res = await fetch(`${API_BASE}/api/feed`, {
+      const res = await fetch(`${apiBase}/api/feed`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
           address,
           amount: feedAmount,
           txHash: txHash,
-          tokenAddress: TOKEN_ADDRESS
+          tokenAddress: gameConfig.tokenAddress
         })
       })
       const data = await res.json()
@@ -115,7 +135,7 @@ export default function Game() {
           </h2>
           <div className="space-y-3 text-gray-300">
             <p>经验值: {player?.exp || 0} / {(player?.level || 1) * 100}</p>
-            <p>今日喂养次数: {player?.todayFeeds || 0} / {config.dailyLimit}</p>
+            <p>今日喂养次数: {player?.todayFeeds || 0} / {gameConfig.dailyLimit}</p>
             <p>累计喂养: {player?.totalFeeds || 0} 次</p>
           </div>
         </div>
@@ -128,14 +148,14 @@ export default function Game() {
             <label className="text-gray-300 block mb-2">喂养数量</label>
             <input
               type="number"
-              min={config.minFeed}
-              max={config.maxFeed}
+              min={gameConfig.minFeed}
+              max={gameConfig.maxFeed}
               value={feedAmount}
               onChange={(e) => setFeedAmount(Number(e.target.value))}
               className="w-full px-4 py-3 bg-gray-800 border border-gray-600 rounded-lg text-white"
             />
             <p className="text-gray-400 text-sm mt-1">
-              范围: {config.minFeed} - {config.maxFeed}
+              范围: {gameConfig.minFeed} - {gameConfig.maxFeed}
             </p>
           </div>
 
@@ -155,7 +175,7 @@ export default function Game() {
 
           <div className="mt-6 text-gray-400 text-sm">
             <p>💡 喂养增加经验值，等级越高每日分红越多</p>
-            <p>📊 前 {config.topN} 名玩家可获得分红</p>
+            <p>📊 前 {gameConfig.topN} 名玩家可获得分红</p>
           </div>
         </div>
       </div>

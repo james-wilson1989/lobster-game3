@@ -1,19 +1,28 @@
 import { useState, useEffect } from 'react'
-import { config } from '../wagmi'
+import { fetchConfig } from '../config'
 
-const API_BASE = config.apiBase
+const DEFAULT_API_BASE = import.meta.env.VITE_API_BASE || 'http://localhost:3001'
 
 export default function Leaderboard() {
   const [players, setPlayers] = useState([])
   const [loading, setLoading] = useState(true)
+  const [gameConfig, setGameConfig] = useState(null)
+  const [apiBase, setApiBase] = useState(DEFAULT_API_BASE)
 
   useEffect(() => {
+    // 页面加载时获取配置
+    const loadConfig = async () => {
+      const cfg = await fetchConfig(DEFAULT_API_BASE)
+      setGameConfig(cfg)
+      setApiBase(cfg.apiBase || DEFAULT_API_BASE)
+    }
+    loadConfig()
     fetchLeaderboard()
   }, [])
 
   const fetchLeaderboard = async () => {
     try {
-      const res = await fetch(`${API_BASE}/api/leaderboard`)
+      const res = await fetch(`${apiBase}/api/leaderboard`)
       const data = await res.json()
       if (data.success) {
         setPlayers(data.data || [])
@@ -26,11 +35,20 @@ export default function Leaderboard() {
 
   const formatAddress = (addr) => `${addr?.slice(0, 6)}...${addr?.slice(-4)}`
 
+  // 等待配置加载
+  if (!gameConfig) {
+    return (
+      <div className="container mx-auto px-4 py-8">
+        <div className="text-center text-white py-12">加载中...</div>
+      </div>
+    )
+  }
+
   return (
     <div className="container mx-auto px-4 py-8">
       <div className="text-center mb-8">
         <h1 className="text-4xl font-bold text-white mb-2">🏆 排行榜</h1>
-        <p className="text-gray-400">前 {config.topN} 名玩家可获得每日分红</p>
+        <p className="text-gray-400">前 {gameConfig.topN} 名玩家可获得每日分红</p>
       </div>
 
       {loading ? (
@@ -50,14 +68,14 @@ export default function Leaderboard() {
                 <th className="px-6 py-4 text-right text-gray-400 font-bold">等级</th>
                 <th className="px-6 py-4 text-right text-gray-400 font-bold">经验值</th>
                 <th className="px-6 py-4 text-right text-gray-400 font-bold">累计喂养</th>
-                <th className="px-6 py-4 text-right text-gray-400 font-bold">总收益</th>
+                <th className="px-6 py-4 text-right text-gray-400 font-bold">总收入</th>
               </tr>
             </thead>
             <tbody>
               {players.map((player, index) => (
                 <tr 
                   key={player.address} 
-                  className={`border-t border-gray-700 ${index < config.topN ? 'bg-yellow-500/10' : ''}`}
+                  className={`border-t border-gray-700 ${index < gameConfig.topN ? 'bg-yellow-500/10' : ''}`}
                 >
                   <td className="px-6 py-4">
                     <div className="flex items-center">
@@ -72,7 +90,7 @@ export default function Leaderboard() {
                   </td>
                   <td className="px-6 py-4 text-right">
                     <span className={`inline-block px-3 py-1 rounded-full text-sm font-bold ${
-                      index < config.topN 
+                      index < gameConfig.topN 
                         ? 'bg-yellow-500/20 text-yellow-400' 
                         : 'bg-gray-700 text-gray-300'
                     }`}>
@@ -99,8 +117,8 @@ export default function Leaderboard() {
         <h3 className="text-xl font-bold text-white mb-4">分红规则</h3>
         <div className="text-gray-300 space-y-2">
           <p>🎯 每天 00:00 (UTC+8) 结算分红</p>
-          <p>📊 前 {config.topN} 名玩家可获得分红</p>
-          <p>💰 分红比例: 前5名获得 {config.dividendPercent}% 的池子</p>
+          <p>📊 前 {gameConfig.topN} 名玩家可获得分红</p>
+          <p>💰 分红比例: 前5名获得 {gameConfig.dividendPercent}% 的池子</p>
           <p>📈 等级越高，排名越靠前，分红越多</p>
         </div>
       </div>

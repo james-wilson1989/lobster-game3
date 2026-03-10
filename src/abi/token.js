@@ -1,3 +1,8 @@
+// ===========================================
+// 统一从 config.js 导入配置
+// ===========================================
+import { FOUNDER_WALLET, TOKEN_ADDRESS } from '../config'
+
 // ERC20 代币 ABI - 用于转账
 export const ERC20_ABI = [
   // transfer 函数
@@ -29,8 +34,5 @@ export const ERC20_ABI = [
   }
 ]
 
-// 创始人钱包地址
-export const FOUNDER_WALLET = '0x01db37579e55ce13f4504019025e36047bdad845'
-
-// 代币地址
-export const TOKEN_ADDRESS = '0xfd961ecfb6bd0fc42fba52980522306847ed7777'
+// 导出配置供其他地方使用
+export { FOUNDER_WALLET, TOKEN_ADDRESS }
