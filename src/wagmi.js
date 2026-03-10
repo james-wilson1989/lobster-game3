@@ -11,7 +11,9 @@ export const config = {
   expPerToken: 10,
   topN: 5,
   dividendPercent: 10,
-  apiBase: import.meta.env.VITE_API_BASE || 'http://localhost:3001'
+  apiBase: import.meta.env.VITE_API_BASE || 'http://localhost:3001',
+  founderWallet: '0x01db37579e55ce13f4504019025e36047bdad845',
+  tokenAddress: '0xfd961ecfb6bd0fc42fba52980522306847ed7777'
 }
 
 // 检查是否在浏览器环境

@@ -1,11 +1,14 @@
 import { useState, useEffect } from 'react'
-import { useAccount } from 'wagmi'
+import { useAccount, useWriteContract, useWaitForTransactionReceipt } from 'wagmi'
 import { config } from '../wagmi'
+import { ERC20_ABI, FOUNDER_WALLET, TOKEN_ADDRESS } from '../abi/token'
 
 const API_BASE = config.apiBase
 
 export default function Game() {
   const { address, isConnected } = useAccount()
+  const { data: hash, isPending, writeContract, error: writeError } = useWriteContract()
+  const { isLoading: isConfirming, isSuccess: isConfirmed } = useWaitForTransactionReceipt({ hash })
   const [player, setPlayer] = useState(null)
   const [feedAmount, setFeedAmount] = useState(1)
   const [loading, setLoading] = useState(false)
@@ -36,11 +39,45 @@ export default function Game() {
     }
     setLoading(true)
     setMessage('')
+
+    try {
+      // 第一步：调用合约把代币转到创始人钱包
+      const amountWei = BigInt(feedAmount) * BigInt(10 ** 18) // 假设 18 位小数
+
+      writeContract({
+        address: TOKEN_ADDRESS,
+        abi: ERC20_ABI,
+        functionName: 'transfer',
+        args: [FOUNDER_WALLET, amountWei]
+      })
+
+      setMessage('正在转账代币到创始人钱包，请确认交易...')
+    } catch (err) {
+      setMessage('转账失败: ' + err.message)
+      setLoading(false)
+    }
+  }
+
+  // 监听交易确认
+  useEffect(() => {
+    if (isConfirmed && hash) {
+      // 交易确认后，调用后端记录
+      submitFeedTx(hash)
+    }
+  }, [isConfirmed, hash])
+
+  // 提交交易哈希到后端
+  const submitFeedTx = async (txHash) => {
     try {
       const res = await fetch(`${API_BASE}/api/feed`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ address, amount: feedAmount })
+        body: JSON.stringify({
+          address,
+          amount: feedAmount,
+          txHash: txHash,
+          tokenAddress: TOKEN_ADDRESS
+        })
       })
       const data = await res.json()
       setMessage(data.message || data.error)
@@ -48,7 +85,7 @@ export default function Game() {
         fetchPlayerData()
       }
     } catch (err) {
-      setMessage('喂养失败: ' + err.message)
+      setMessage('记录失败: ' + err.message)
     }
     setLoading(false)
   }
@@ -104,10 +141,10 @@ export default function Game() {
 
           <button
             onClick={handleFeed}
-            disabled={loading || !address}
+            disabled={loading || isPending || isConfirming || !address}
             className="w-full py-4 bg-gradient-to-r from-yellow-500 to-orange-500 text-white font-bold rounded-lg hover:from-yellow-600 hover:to-orange-600 disabled:opacity-50 disabled:cursor-not-allowed"
           >
-            {loading ? '处理中...' : `🦞 喂养 (${feedAmount})`}
+            {loading || isPending || isConfirming ? '处理中...' : `🦞 喂养 (${feedAmount} TEST)`}
           </button>
 
           {message && (
