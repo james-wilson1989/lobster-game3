@@ -2,9 +2,20 @@ import React, { useState, useEffect } from 'react'
 import ReactDOM from 'react-dom/client'
 import { BrowserRouter } from 'react-router-dom'
 import { WagmiProvider } from 'wagmi'
+import { QueryClient, QueryClientProvider } from '@tanstack/react-query'
 import App from './App'
 import './index.css'
 import { config, wagmiConfig } from './wagmi'
+
+// 创建一个 QueryClient 实例
+const queryClient = new QueryClient({
+  defaultOptions: {
+    queries: {
+      retry: 2,
+      refetchOnWindowFocus: false,
+    },
+  },
+})
 
 // 检查是否在浏览器环境
 const isBrowser = typeof window !== 'undefined'
@@ -120,7 +131,9 @@ if (rootElement) {
         <InitialLoader>
           <BrowserRouter>
             <WagmiProvider config={wagmiConfig}>
-              <App />
+              <QueryClientProvider client={queryClient}>
+                <App />
+              </QueryClientProvider>
             </WagmiProvider>
           </BrowserRouter>
         </InitialLoader>
