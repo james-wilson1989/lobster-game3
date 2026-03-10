@@ -1,9 +1,10 @@
 import { Link } from 'react-router-dom'
 import { useAccount, useConnect } from 'wagmi'
+import { injected } from 'wagmi/connectors'
 
 export default function Home() {
   const { address, isConnected } = useAccount()
-  const { connectAsync } = useConnect()
+  const { connectors, connect } = useConnect()
 
   const formatAddress = (addr) => `${addr?.slice(0, 6)}...${addr?.slice(-4)}`
 
@@ -14,13 +15,17 @@ export default function Home() {
     { title: '排行榜', desc: '与全球玩家竞争，展示你的实力', icon: '🏆' }
   ]
 
-  const handleConnect = async () => {
+  const handleConnect = async (connector) => {
     try {
-      await connectAsync({ connector: window.ethereum })
+      await connect({ connector })
     } catch (error) {
       console.error('连接钱包失败:', error)
+      alert('连接钱包失败，请确保已安装钱包插件')
     }
   }
+
+  // 获取注入的钱包连接器（MetaMask, OKX等浏览器插件钱包）
+  const injectedConnector = connectors.find(c => c.type === 'injected')
 
   return (
     <div className="min-h-[80vh] flex flex-col items-center justify-center">
@@ -41,10 +46,22 @@ export default function Home() {
         ) : (
           <div className="glass-card p-8 max-w-md mx-auto">
             <h2 className="text-2xl text-white mb-6">立即开始游戏</h2>
-            <button onClick={handleConnect} className="glass-button gold-button w-full text-lg py-4">
-              🦊 连接 MetaMask 钱包
-            </button>
-            <p className="text-gray-400 text-sm mt-4">请安装 MetaMask 钱包插件</p>
+            {injectedConnector ? (
+              <button 
+                onClick={() => handleConnect(injectedConnector)} 
+                className="glass-button gold-button w-full text-lg py-4"
+              >
+                🦊 连接钱包 (MetaMask/OKX)
+              </button>
+            ) : (
+              <button 
+                onClick={() => alert('请安装钱包插件，如 MetaMask 或 OKX Wallet')} 
+                className="glass-button gold-button w-full text-lg py-4"
+              >
+                🦊 安装钱包
+              </button>
+            )}
+            <p className="text-gray-400 text-sm mt-4">支持 MetaMask、OKX Wallet 等浏览器钱包插件</p>
           </div>
         )}
       </div>

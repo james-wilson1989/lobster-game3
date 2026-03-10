@@ -1,14 +1,22 @@
 import { Link, useLocation } from 'react-router-dom'
-import { useAccount, useDisconnect } from 'wagmi'
+import { useAccount, useDisconnect, useConnect } from 'wagmi'
 
 export default function Navbar() {
   const { address, isConnected } = useAccount()
   const { disconnect } = useDisconnect()
+  const { connectors, connect } = useConnect()
   const location = useLocation()
 
   const formatAddress = (addr) => `${addr?.slice(0, 6)}...${addr?.slice(-4)}`
 
   const isActive = (path) => location.pathname === path
+
+  const handleConnect = () => {
+    const injectedConnector = connectors.find(c => c.type === 'injected')
+    if (injectedConnector) {
+      connect({ connector: injectedConnector })
+    }
+  }
 
   return (
     <nav className="bg-gray-900/80 backdrop-blur-md border-b border-gray-700 sticky top-0 z-50">
@@ -63,7 +71,12 @@ export default function Navbar() {
                 </button>
               </div>
             ) : (
-              <span className="text-sm text-gray-400">未连接</span>
+              <button
+                onClick={handleConnect}
+                className="px-4 py-2 text-sm bg-yellow-500/20 text-yellow-400 rounded-lg hover:bg-yellow-500/30 transition-colors"
+              >
+                连接钱包
+              </button>
             )}
           </div>
         </div>
