@@ -1,0 +1,16 @@
+{
+  "tokenAddress": "0xfd961ecfb6bd0fc42fba52980522306847ed7777",
+  "tokenDecimals": 18,
+  "tokenSymbol": "TEST",
+  "feedCost": 1,
+  "dividendRate": 10,
+  "baseExpRequired": 100,
+  "expMultiplier": 1.5,
+  "gameContractAddress": "0x0000000000000000000000000000000000000000",
+  "vaultAddress": "0x0000000000000000000000000000000000000000",
+  "chainId": 97,
+  "rpcUrl": "https://bsc-testnet.publicnode.com",
+  "minFeedAmount": 1,
+  "maxFeedAmount": 100,
+  "dailyFeedLimit": 10
+}
