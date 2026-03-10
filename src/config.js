@@ -25,10 +25,17 @@ export const fetchConfig = async (apiBase) => {
     const res = await fetch(`${apiBase}/api/config`)
     const data = await res.json()
     if (data.success) {
+      const backendData = data.data
       return {
         ...defaultConfig,
-        ...data.data,
-        apiBase: apiBase
+        ...backendData,
+        apiBase: apiBase,
+        // 字段名映射：后端 -> 前端
+        minFeed: backendData.minFeedAmount || defaultConfig.minFeed,
+        maxFeed: backendData.maxFeedAmount || defaultConfig.maxFeed,
+        dailyLimit: backendData.dailyFeedLimit || defaultConfig.dailyLimit,
+        dividendPercent: backendData.dividendRate || defaultConfig.dividendPercent,
+        topN: 5
       }
     }
   } catch (e) {
