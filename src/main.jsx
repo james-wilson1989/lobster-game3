@@ -1,7 +1,7 @@
 import React, { useState, useEffect } from 'react'
 import ReactDOM from 'react-dom/client'
 import { BrowserRouter } from 'react-router-dom'
-import { WagmiConfig } from 'wagmi'
+import { WagmiProvider } from 'wagmi'
 import App from './App'
 import './index.css'
 import { config, wagmiConfig } from './wagmi'
@@ -119,9 +119,9 @@ if (rootElement) {
       <ErrorBoundary>
         <InitialLoader>
           <BrowserRouter>
-            <WagmiConfig config={wagmiConfig}>
+            <WagmiProvider config={wagmiConfig}>
               <App />
-            </WagmiConfig>
+            </WagmiProvider>
           </BrowserRouter>
         </InitialLoader>
       </ErrorBoundary>
