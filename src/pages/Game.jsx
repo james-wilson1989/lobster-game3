@@ -12,7 +12,7 @@ export default function Game() {
   const { isLoading: isConfirming, isSuccess: isConfirmed } = useWaitForTransactionReceipt({ hash })
   
   const [player, setPlayer] = useState(null)
-  const [feedAmount, setFeedAmount] = useState(1)
+  const [feedAmount, setFeedAmount] = useState(100)
   const [loading, setLoading] = useState(false)
   const [message, setMessage] = useState('')
   const [gameConfig, setGameConfig] = useState(config)
@@ -145,15 +145,37 @@ export default function Game() {
           <h3 className="text-2xl font-bold text-white mb-6">喂养龙虾</h3>
           
           <div className="mb-6">
-            <label className="text-gray-300 block mb-2">喂养数量</label>
-            <input
-              type="number"
-              min={gameConfig.minFeed}
-              max={gameConfig.maxFeed}
-              value={feedAmount}
-              onChange={(e) => setFeedAmount(Number(e.target.value))}
-              className="w-full px-4 py-3 bg-gray-800 border border-gray-600 rounded-lg text-white"
-            />
+            <label className="text-gray-300 block mb-2">选择喂养数量</label>
+            
+            {/* 预设选项按钮 */}
+            <div className="grid grid-cols-4 gap-2 mb-4">
+              {[100, 500, 1000, 5000].map((amount) => (
+                <button
+                  key={amount}
+                  onClick={() => setFeedAmount(amount)}
+                  className={`py-3 px-2 rounded-lg font-bold transition-all ${
+                    feedAmount === amount
+                      ? 'bg-yellow-500 text-white'
+                      : 'bg-gray-700 text-gray-300 hover:bg-gray-600'
+                  }`}
+                >
+                  {amount}
+                </button>
+              ))}
+            </div>
+            
+            {/* 也允许手动输入 */}
+            <div className="flex items-center gap-2">
+              <span className="text-gray-400">自定义:</span>
+              <input
+                type="number"
+                min={gameConfig.minFeed}
+                max={gameConfig.maxFeed}
+                value={feedAmount}
+                onChange={(e) => setFeedAmount(Number(e.target.value))}
+                className="flex-1 px-4 py-3 bg-gray-800 border border-gray-600 rounded-lg text-white"
+              />
+            </div>
             <p className="text-gray-400 text-sm mt-1">
               范围: {gameConfig.minFeed} - {gameConfig.maxFeed}
             </p>

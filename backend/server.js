@@ -37,8 +37,8 @@ let gameConfig = {
   vaultAddress: '',
   chainId: 97,
   rpcUrl: 'https://bsc-testnet.publicnode.com',
-  minFeedAmount: 1,
-  maxFeedAmount: 100,
+  minFeedAmount: 100,
+  maxFeedAmount: 10000,
   dailyFeedLimit: 10
 }
 

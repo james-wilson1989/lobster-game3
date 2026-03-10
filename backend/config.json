@@ -11,7 +11,7 @@
   "founderWallet": "0x01db37579e55ce13f4504019025e36047bdad845",
   "chainId": 97,
   "rpcUrl": "https://bsc-testnet.publicnode.com",
-  "minFeedAmount": 1,
-  "maxFeedAmount": 100,
+  "minFeedAmount": 100,
+  "maxFeedAmount": 10000,
   "dailyFeedLimit": 10
 }
