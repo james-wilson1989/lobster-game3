@@ -1,22 +1,31 @@
 import { useState, useEffect } from 'react'
 import { useAccount, useWriteContract, useWaitForTransactionReceipt } from 'wagmi'
-import { fetchConfig } from '../config'
+import { config, fetchConfig } from '../config'
 import { VAULT_ABI } from '../abi/vault'
+
+// 带超时的fetch
+const fetchWithTimeout = (url, timeout = 5000) => {
+  return Promise.race([
+    fetch(url),
+    new Promise((_, reject) => setTimeout(() => reject(new Error('请求超时')), timeout))
+  ])
+}
 
 export default function Dividend() {
   const { address, isConnected } = useAccount()
   const { writeContract, data: hash } = useWriteContract()
   const { isConfirmed, isLoading: isConfirming } = useWaitForTransactionReceipt({ hash })
   
-  const [loading, setLoading] = useState(true)
+  const [loading, setLoading] = useState(false)  // 默认false，先显示页面
   const [claiming, setClaiming] = useState(false)
   const [message, setMessage] = useState('')
   const [player, setPlayer] = useState(null)
   const [rank, setRank] = useState(null)
   const [dividends, setDividends] = useState([])
-  const [gameConfig, setGameConfig] = useState(null)
+  const [gameConfig, setGameConfig] = useState(config)  // 用默认配置先显示
   const [vaultPool, setVaultPool] = useState('0')
   const [pendingDividend, setPendingDividend] = useState('0')
+  const [dataLoaded, setDataLoaded] = useState(false)
 
   // 获取API地址
   const apiBase = import.meta.env.VITE_API_BASE || 'http://localhost:3001'
@@ -24,64 +33,72 @@ export default function Dividend() {
   // 获取Vault合约地址
   const vaultAddress = gameConfig?.vaultAddress || '0x0000000000000000000000000000000000000000'
 
-  // 加载数据函数 - 必须useEffect之前定义
-  const loadData = async () => {
-    try {
-      // 并行获取配置和分红记录（不依赖address）
-      const [cfg, divRes] = await Promise.all([
-        fetchConfig(apiBase),
-        fetch(`${apiBase}/api/all-transactions?type=dividend`).catch(() => ({ json: () => ({ success: false, data: [] }) }))
-      ])
-      setGameConfig(cfg)
-
-      const divData = await divRes.json()
-      if (divData.success) {
-        setDividends(divData.data || [])
-      }
-
-      // 如果已连接钱包，并行获取玩家数据和排行榜
-      if (address) {
-        const [playerRes, leaderboardRes] = await Promise.all([
-          fetch(`${apiBase}/api/player/${address}`).catch(() => ({ json: () => ({ success: false }) })),
-          fetch(`${apiBase}/api/leaderboard`).catch(() => ({ json: () => ({ success: false, data: [] }) }))
+  // 后台加载数据
+  useEffect(() => {
+    let cancelled = false
+    
+    const loadData = async () => {
+      setLoading(true)
+      try {
+        // 并行请求，带超时
+        const [cfg, divRes] = await Promise.all([
+          fetchWithTimeout(`${apiBase}/api/config`, 5000).then(r => r.json()).catch(() => ({ success: false })),
+          fetchWithTimeout(`${apiBase}/api/all-transactions?type=dividend`, 5000).then(r => r.json()).catch(() => ({ success: false, data: [] }))
         ])
-
-        const playerData = await playerRes.json()
-        if (playerData.success) {
-          setPlayer(playerData.data)
+        
+        if (cancelled) return
+        
+        if (cfg.success) {
+          setGameConfig(prev => ({ ...prev, ...cfg.data }))
+        }
+        
+        if (divRes.success) {
+          setDividends(divRes.data || [])
         }
 
-        const leaderboardData = await leaderboardRes.json()
-        if (leaderboardData.success) {
-          const players = leaderboardData.data || []
-          const playerRank = players.findIndex(p => p.address.toLowerCase() === address.toLowerCase())
-          if (playerRank !== -1) {
-            setRank(playerRank + 1)
+        // 加载玩家数据
+        if (address) {
+          try {
+            const [playerRes, leaderboardRes] = await Promise.all([
+              fetchWithTimeout(`${apiBase}/api/player/${address}`, 5000).then(r => r.json()).catch(() => ({ success: false })),
+              fetchWithTimeout(`${apiBase}/api/leaderboard`, 5000).then(r => r.json()).catch(() => ({ success: false, data: [] }))
+            ])
+            
+            if (playerRes.success) setPlayer(playerRes.data)
+            if (leaderboardRes.success) {
+              const players = leaderboardRes.data || []
+              const idx = players.findIndex(p => p.address.toLowerCase() === address.toLowerCase())
+              if (idx !== -1) setRank(idx + 1)
+            }
+          } catch (e) {
+            console.error('加载玩家数据失败:', e)
           }
         }
+      } catch (err) {
+        console.error('加载数据失败:', err)
+      } finally {
+        if (!cancelled) {
+          setLoading(false)
+          setDataLoaded(true)
+        }
       }
-    } catch (err) {
-      console.error('加载数据失败:', err)
-    } finally {
-      setLoading(false)
     }
-  }
-
-  useEffect(() => {
+    
     loadData()
-  }, [address])
+    
+    return () => { cancelled = true }
+  }, [address, apiBase])
 
   // 查询合约上的分红信息
   const checkVaultDividend = async () => {
     if (!address || !vaultAddress || vaultAddress === '0x0000000000000000000000000000000000000000') return
     
     try {
-      // 查询可领取分红
       const pending = await window.ethereum?.request({
         method: 'eth_call',
         params: [{
           to: vaultAddress,
-          data: '0x9e5d4c4f' + address.slice(2).padStart(64, '0') // getPendingDividend(address)
+          data: '0x9e5d4c4f' + address.slice(2).padStart(64, '0')
         }, 'latest']
       })
       
@@ -90,12 +107,11 @@ export default function Dividend() {
         setPendingDividend(pendingNum.toString())
       }
       
-      // 查询池子余额
       const poolData = await window.ethereum?.request({
         method: 'eth_call',
         params: [{
           to: vaultAddress,
-          data: '0x3d1d9a01' // dividendPool()
+          data: '0x3d1d9a01'
         }, 'latest']
       })
       
@@ -112,7 +128,7 @@ export default function Dividend() {
     if (isConnected && address) {
       checkVaultDividend()
     }
-  }, [isConnected, address])
+  }, [isConnected, address, vaultAddress])
 
   const handleClaim = async () => {
     if (!address) return
@@ -134,7 +150,6 @@ export default function Dividend() {
     }
   }
 
-  // 监听交易确认
   useEffect(() => {
     if (isConfirmed) {
       setMessage('领取成功！')
@@ -143,19 +158,16 @@ export default function Dividend() {
     }
   }, [isConfirmed])
 
-  if (loading) {
-    return (
-      <div className="container mx-auto px-4 py-8">
-        <div className="text-center text-white py-12">加载中...</div>
-      </div>
-    )
-  }
-
   const canClaim = player && rank && rank <= (gameConfig?.topN || 5)
 
   return (
     <div className="container mx-auto px-4 py-8">
       <h1 className="text-4xl font-bold text-center text-white mb-8">每日分红</h1>
+
+      {/* 加载指示器 */}
+      {loading && (
+        <div className="text-center text-gray-400 mb-4">正在加载数据...</div>
+      )}
 
       {/* Vault池子信息 */}
       {vaultAddress && vaultAddress !== '0x0000000000000000000000000000000000000000' && (
@@ -224,8 +236,10 @@ export default function Dividend() {
                   </p>
                 )}
               </div>
-            ) : (
+            ) : dataLoaded ? (
               <p className="text-gray-400">暂无排名数据</p>
+            ) : (
+              <p className="text-gray-400">加载中...</p>
             )}
           </div>
 
@@ -253,8 +267,10 @@ export default function Dividend() {
                   </div>
                 ))}
               </div>
-            ) : (
+            ) : dataLoaded ? (
               <p className="text-gray-400">暂无分红记录</p>
+            ) : (
+              <p className="text-gray-400">加载中...</p>
             )}
           </div>
         </>
