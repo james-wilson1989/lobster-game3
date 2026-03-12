@@ -24,54 +24,41 @@ export default function Dividend() {
   // 获取Vault合约地址
   const vaultAddress = gameConfig?.vaultAddress || '0x0000000000000000000000000000000000000000'
 
-  // 加载数据函数 - 必须在 useEffect 之前定义
+  // 加载数据函数 - 必须useEffect之前定义
   const loadData = async () => {
     try {
-      // 获取配置
-      const cfg = await fetchConfig(apiBase)
+      // 并行获取配置和分红记录（不依赖address）
+      const [cfg, divRes] = await Promise.all([
+        fetchConfig(apiBase),
+        fetch(`${apiBase}/api/all-transactions?type=dividend`).catch(() => ({ json: () => ({ success: false, data: [] }) }))
+      ])
       setGameConfig(cfg)
 
-      // 获取玩家数据
-      if (address) {
-        try {
-          const playerRes = await fetch(`${apiBase}/api/player/${address}`)
-          const playerData = await playerRes.json()
-          if (playerData.success) {
-            setPlayer(playerData.data)
-          }
-        } catch (e) {
-          console.error('获取玩家数据失败:', e)
-        }
-
-        // 获取排名
-        try {
-          const leaderboardRes = await fetch(`${apiBase}/api/leaderboard`)
-          const leaderboardData = await leaderboardRes.json()
-          if (leaderboardData.success) {
-            const players = leaderboardData.data || []
-            const playerRank = players.findIndex(p => p.address.toLowerCase() === address.toLowerCase())
-            if (playerRank !== -1) {
-              setRank(playerRank + 1)
-            } else {
-              setRank(null)
-            }
-          }
-        } catch (e) {
-          console.error('获取排行榜失败:', e)
-          setRank(null)
-        }
+      const divData = await divRes.json()
+      if (divData.success) {
+        setDividends(divData.data || [])
       }
 
-      // 获取分红记录
-      try {
-        const divRes = await fetch(`${apiBase}/api/all-transactions?type=dividend`)
-        const divData = await divRes.json()
-        if (divData.success) {
-          setDividends(divData.data || [])
+      // 如果已连接钱包，并行获取玩家数据和排行榜
+      if (address) {
+        const [playerRes, leaderboardRes] = await Promise.all([
+          fetch(`${apiBase}/api/player/${address}`).catch(() => ({ json: () => ({ success: false }) })),
+          fetch(`${apiBase}/api/leaderboard`).catch(() => ({ json: () => ({ success: false, data: [] }) }))
+        ])
+
+        const playerData = await playerRes.json()
+        if (playerData.success) {
+          setPlayer(playerData.data)
         }
-      } catch (e) {
-        console.error('获取分红记录失败:', e)
-        setDividends([])
+
+        const leaderboardData = await leaderboardRes.json()
+        if (leaderboardData.success) {
+          const players = leaderboardData.data || []
+          const playerRank = players.findIndex(p => p.address.toLowerCase() === address.toLowerCase())
+          if (playerRank !== -1) {
+            setRank(playerRank + 1)
+          }
+        }
       }
     } catch (err) {
       console.error('加载数据失败:', err)
@@ -193,7 +180,7 @@ export default function Dividend() {
                 <div className="flex justify-between text-gray-300">
                   <span>当前排名:</span>
                   <span className={rank <= (gameConfig?.topN || 5) ? 'text-yellow-400 font-bold' : 'text-gray-400'}>
-                    第 {rank} 名 {rank <= (gameConfig?.topN || 5) && '🏆'}
+                    第{rank}名 {rank <= (gameConfig?.topN || 5) && '🏆'}
                   </span>
                 </div>
                 
@@ -227,7 +214,7 @@ export default function Dividend() {
                   </p>
                 ) : (
                   <p className="text-gray-400 text-sm mt-4">
-                    只有前 {gameConfig?.topN || 5} 名才能领取分红，继续加油！
+                    只有前{gameConfig?.topN || 5}名才能领取分红，继续加油！
                   </p>
                 )}
 
@@ -247,7 +234,7 @@ export default function Dividend() {
             <h3 className="text-xl font-bold text-white mb-4">分红规则</h3>
             <ul className="text-gray-300 space-y-2">
               <li>• 每日 00:00 结算前一天的排行榜</li>
-              <li>• 前 {gameConfig?.topN || 5} 名玩家可获得分红</li>
+              <li>• 前{gameConfig?.topN || 5}名玩家可获得分红</li>
               <li>• 分红金额 = 等级² × {gameConfig?.dividendPercent || 10}</li>
               <li>• 分红来源：Flap平台税收自动转入</li>
               <li>• 领取方式：连接钱包点击领取BNB</li>
