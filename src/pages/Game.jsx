@@ -195,9 +195,8 @@ export default function Game() {
           </h2>
           <p className="text-gray-400 text-sm mb-4">等级 {player?.level || 1}</p>
           <div className="space-y-3 text-gray-300">
-            <p>经验值: {player?.experience || 0} / {player?.experienceToNextLevel || 100}</p>
+            <p>当前经验: {player?.experience || 0} / {player?.experienceToNextLevel || 100}（还需 {Math.max(0, (player?.experienceToNextLevel || 100) - (player?.experience || 0))} 升级）</p>
             <p>今日喂养次数: {player?.todayFeedCount || 0} / {gameConfig.dailyLimit}</p>
-            <p>累计经验: {player?.totalExperience || 0}</p>
           </div>
         </div>
 
