@@ -382,6 +382,26 @@ app.get('/api/transactions/:address', (req, res) => {
   }
 })
 
+// 获取所有交易记录（可筛选类型）
+app.get('/api/all-transactions', (req, res) => {
+  try {
+    const { type } = req.query
+    let transactions = db.transactions
+    
+    if (type) {
+      transactions = transactions.filter(t => t.type === type)
+    }
+    
+    transactions = transactions
+      .sort((a, b) => b.createdAt - a.createdAt)
+      .slice(0, 100)
+    
+    res.json({ success: true, data: transactions })
+  } catch (error) {
+    res.status(500).json({ success: false, error: error.message })
+  }
+})
+
 // 获取统计数据
 app.get('/api/stats', (req, res) => {
   try {
@@ -448,6 +468,7 @@ app.listen(PORT, '0.0.0.0', () => {
   console.log(`   - POST /api/claim-dividend`)
   console.log(`   - GET  /api/leaderboard`)
   console.log(`   - GET  /api/transactions/:address`)
+  console.log(`   - GET  /api/all-transactions`)
   console.log(`   - GET  /api/stats`)
   console.log(`   - GET  /api/config`)
   console.log(`   - POST /api/config/reload`)

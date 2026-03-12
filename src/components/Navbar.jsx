@@ -54,6 +54,14 @@ export default function Navbar() {
             >
               排行榜
             </Link>
+            <Link 
+              to="/dividend" 
+              className={`text-sm font-medium transition-colors ${
+                isActive('/dividend') ? 'text-yellow-400' : 'text-gray-300 hover:text-white'
+              }`}
+            >
+              分红
+            </Link>
           </div>
 
           {/* 钱包连接 */}

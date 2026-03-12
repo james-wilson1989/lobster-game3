@@ -3,6 +3,7 @@ import Navbar from './components/Navbar'
 import Home from './pages/Home'
 import Game from './pages/Game'
 import Leaderboard from './pages/Leaderboard'
+import Dividend from './pages/Dividend'
 
 export default function App() {
   return (
@@ -13,6 +14,7 @@ export default function App() {
           <Route path="/" element={<Home />} />
           <Route path="/game" element={<Game />} />
           <Route path="/leaderboard" element={<Leaderboard />} />
+          <Route path="/dividend" element={<Dividend />} />
         </Routes>
       </div>
     </div>
