@@ -20,16 +20,19 @@ let defaultConfig = {
 }
 
 // 异步获取后端配置
-export const fetchConfig = async (apiBase) => {
+export const fetchConfig = async (initialApiBase) => {
   try {
-    const res = await fetch(`${apiBase}/api/config`)
+    // 使用传入的初始地址获取配置
+    const res = await fetch(`${initialApiBase}/api/config`)
     const data = await res.json()
     if (data.success) {
       const backendData = data.data
+      // 使用后端返回的 apiBase（如果后端没有返回，则使用传入的 initialApiBase）
+      const apiBase = backendData.apiBase || initialApiBase
       return {
         ...defaultConfig,
         ...backendData,
-        apiBase: apiBase,
+        apiBase: apiBase,  // 使用后端返回的地址
         // 字段名映射：后端 -> 前端
         minFeed: backendData.minFeedAmount || defaultConfig.minFeed,
         maxFeed: backendData.maxFeedAmount || defaultConfig.maxFeed,

@@ -17,6 +17,8 @@ export default function Game() {
   const [message, setMessage] = useState('')
   const [gameConfig, setGameConfig] = useState(config)
   const [apiBase, setApiBase] = useState(DEFAULT_API_BASE)
+  const [showNameModal, setShowNameModal] = useState(false)
+  const [playerName, setPlayerName] = useState('')
 
   // 页面加载时从后端获取配置
   useEffect(() => {
@@ -41,9 +43,39 @@ export default function Game() {
       const data = await res.json()
       if (data.success) {
         setPlayer(data.data)
+      } else {
+        // 玩家不存在，显示创建名字弹窗
+        setShowNameModal(true)
       }
     } catch (err) {
       console.error('获取玩家数据失败:', err)
+    }
+  }
+
+  const handleCreatePlayer = async () => {
+    if (!playerName.trim()) {
+      setMessage('请输入名字')
+      return
+    }
+    try {
+      const res = await fetch(`${apiBase}/api/player`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          address,
+          lobsterName: playerName.trim()
+        })
+      })
+      const data = await res.json()
+      if (data.success) {
+        setPlayer(data.data)
+        setShowNameModal(false)
+        setMessage('')
+      } else {
+        setMessage(data.message || '创建失败')
+      }
+    } catch (err) {
+      setMessage('创建失败: ' + err.message)
     }
   }
 
@@ -94,7 +126,7 @@ export default function Game() {
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
           address,
-          amount: feedAmount,
+          tokenAmount: feedAmount,
           txHash: txHash,
           tokenAddress: gameConfig.tokenAddress
         })
@@ -111,6 +143,34 @@ export default function Game() {
   }
 
   const formatAddress = (addr) => `${addr?.slice(0, 6)}...${addr?.slice(-4)}`
+
+  // 创建名字弹窗
+  if (showNameModal) {
+    return (
+      <div className="min-h-[60vh] flex items-center justify-center">
+        <div className="glass-card p-8 text-center max-w-md">
+          <div className="text-6xl mb-4">🐉</div>
+          <h2 className="text-2xl text-white mb-4">欢迎新玩家!</h2>
+          <p className="text-gray-400 mb-6">请为你的龙虾起个名字吧</p>
+          <input
+            type="text"
+            maxLength={12}
+            value={playerName}
+            onChange={(e) => setPlayerName(e.target.value)}
+            placeholder="输入名字（最多12字）"
+            className="w-full px-4 py-3 bg-gray-800 border border-gray-600 rounded-lg text-white mb-4"
+          />
+          {message && <p className="text-red-400 text-sm mb-4">{message}</p>}
+          <button
+            onClick={handleCreatePlayer}
+            className="w-full py-3 bg-gradient-to-r from-yellow-500 to-orange-500 text-white font-bold rounded-lg"
+          >
+            开始游戏
+          </button>
+        </div>
+      </div>
+    )
+  }
 
   if (!isConnected) {
     return (
@@ -130,13 +190,14 @@ export default function Game() {
         {/* 龙虾展示 */}
         <div className="glass-card p-8 text-center">
           <div className="text-8xl mb-6">🦞</div>
-          <h2 className="text-3xl font-bold text-white mb-4">
-            等级 {player?.level || 1}
+          <h2 className="text-3xl font-bold text-white mb-2">
+            {player?.lobsterName || '小青龙'}
           </h2>
+          <p className="text-gray-400 text-sm mb-4">等级 {player?.level || 1}</p>
           <div className="space-y-3 text-gray-300">
-            <p>经验值: {player?.exp || 0} / {(player?.level || 1) * 100}</p>
-            <p>今日喂养次数: {player?.todayFeeds || 0} / {gameConfig.dailyLimit}</p>
-            <p>累计喂养: {player?.totalFeeds || 0} 次</p>
+            <p>经验值: {player?.experience || 0} / {player?.experienceToNextLevel || 100}</p>
+            <p>今日喂养次数: {player?.todayFeedCount || 0} / {gameConfig.dailyLimit}</p>
+            <p>累计经验: {player?.totalExperience || 0}</p>
           </div>
         </div>
 
@@ -212,11 +273,11 @@ export default function Game() {
           </div>
           <div>
             <p className="text-gray-500 text-sm">总收益</p>
-            <p className="text-green-400">{player?.totalDividends || 0} LOB</p>
+            <p className="text-green-400">{player?.totalEarned || 0} LOB</p>
           </div>
           <div>
             <p className="text-gray-500 text-sm">今日收益</p>
-            <p className="text-green-400">{player?.todayDividends || 0} LOB</p>
+            <p className="text-green-400">{player?.dailyDividend || 0} LOB</p>
           </div>
           <div>
             <p className="text-gray-500 text-sm">排名</p>

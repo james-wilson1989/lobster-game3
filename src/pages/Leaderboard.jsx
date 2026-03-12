@@ -67,8 +67,7 @@ export default function Leaderboard() {
                 <th className="px-6 py-4 text-left text-gray-400 font-bold">玩家</th>
                 <th className="px-6 py-4 text-right text-gray-400 font-bold">等级</th>
                 <th className="px-6 py-4 text-right text-gray-400 font-bold">经验值</th>
-                <th className="px-6 py-4 text-right text-gray-400 font-bold">累计喂养</th>
-                <th className="px-6 py-4 text-right text-gray-400 font-bold">总收入</th>
+                <th className="px-6 py-4 text-right text-gray-400 font-bold">今日分红</th>
               </tr>
             </thead>
             <tbody>
@@ -98,13 +97,13 @@ export default function Leaderboard() {
                     </span>
                   </td>
                   <td className="px-6 py-4 text-right text-gray-300">
-                    {player.exp}
+                    {player.totalExp}
                   </td>
                   <td className="px-6 py-4 text-right text-gray-300">
-                    {player.totalFeeds}
+                    {player.totalExp}
                   </td>
                   <td className="px-6 py-4 text-right text-green-400 font-bold">
-                    {player.totalDividends} LOB
+                    {player.dailyDividend} LOB
                   </td>
                 </tr>
               ))}
