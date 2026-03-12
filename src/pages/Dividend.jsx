@@ -24,10 +24,7 @@ export default function Dividend() {
   // 获取Vault合约地址
   const vaultAddress = gameConfig?.vaultAddress || '0x0000000000000000000000000000000000000000'
 
-  useEffect(() => {
-    loadData()
-  }, [address, isConfirmed])
-
+  // 加载数据函数 - 必须在 useEffect 之前定义
   const loadData = async () => {
     try {
       // 获取配置
@@ -55,10 +52,13 @@ export default function Dividend() {
             const playerRank = players.findIndex(p => p.address.toLowerCase() === address.toLowerCase())
             if (playerRank !== -1) {
               setRank(playerRank + 1)
+            } else {
+              setRank(null)
             }
           }
         } catch (e) {
           console.error('获取排行榜失败:', e)
+          setRank(null)
         }
       }
 
@@ -71,12 +71,18 @@ export default function Dividend() {
         }
       } catch (e) {
         console.error('获取分红记录失败:', e)
+        setDividends([])
       }
     } catch (err) {
       console.error('加载数据失败:', err)
+    } finally {
+      setLoading(false)
     }
-    setLoading(false)
   }
+
+  useEffect(() => {
+    loadData()
+  }, [address])
 
   // 查询合约上的分红信息
   const checkVaultDividend = async () => {

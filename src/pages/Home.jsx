@@ -10,7 +10,7 @@ export default function Home() {
 
   const features = [
     { title: 'Web3养殖', desc: '连接钱包，养育你的专属龙虾', icon: '🦞' },
-    { title: '代币喂养', desc: '使用代币喂养，等级越高分红越多', icon: '🪙' },
+    { title: '代币喂养', desc: '使用代币喂养，等级越高分红越多', icon: '💵' },
     { title: '每日分红', desc: '根据龙虾等级获取每日分红收益', icon: '💰' },
     { title: '排行榜', desc: '与全球玩家竞争，展示你的实力', icon: '🏆' }
   ]
