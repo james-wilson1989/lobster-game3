@@ -16,7 +16,8 @@ let defaultConfig = {
   founderWallet: '0x01db37579e55ce13f4504019025e36047bdad845',
   tokenAddress: '0xfd961ecfb6bd0fc42fba52980522306847ed7777',
   tokenSymbol: 'TEST',
-  tokenDecimals: 18
+  tokenDecimals: 18,
+  vaultAddress: '0x0000000000000000000000000000000000000000'
 }
 
 // 异步获取后端配置
@@ -38,7 +39,8 @@ export const fetchConfig = async (initialApiBase) => {
         maxFeed: backendData.maxFeedAmount || defaultConfig.maxFeed,
         dailyLimit: backendData.dailyFeedLimit || defaultConfig.dailyLimit,
         dividendPercent: backendData.dividendRate || defaultConfig.dividendPercent,
-        topN: 5
+        topN: 5,
+        vaultAddress: backendData.vaultAddress || defaultConfig.vaultAddress
       }
     }
   } catch (e) {
