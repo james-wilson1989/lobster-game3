@@ -1,5 +1,5 @@
 import { useState, useEffect } from 'react'
-import { useAccount, useWriteContract, useWaitForTransactionReceipt } from 'wagmi'
+import { useAccount, useWriteContract, useWaitForTransactionReceipt, useReadContract } from 'wagmi'
 import { config, fetchConfig } from '../config'
 import { VAULT_ABI } from '../abi/vault'
 
@@ -89,44 +89,49 @@ export default function Dividend() {
     return () => { cancelled = true }
   }, [address, apiBase])
 
-  // 查询合约上的分红信息
-  const checkVaultDividend = async () => {
-    if (!address || !vaultAddress || vaultAddress === '0x0000000000000000000000000000000000000000') return
-    
-    try {
-      const pending = await window.ethereum?.request({
-        method: 'eth_call',
-        params: [{
-          to: vaultAddress,
-          data: '0x9e5d4c4f' + address.slice(2).padStart(64, '0')
-        }, 'latest']
-      })
-      
-      if (pending && pending !== '0x') {
-        const pendingNum = parseInt(pending, 16) / 1e18
-        setPendingDividend(pendingNum.toString())
-      }
-      
-      const poolData = await window.ethereum?.request({
-        method: 'eth_call',
-        params: [{
-          to: vaultAddress,
-          data: '0x3d1d9a01'
-        }, 'latest']
-      })
-      
-      if (poolData && poolData !== '0x') {
-        const poolNum = parseInt(poolData, 16) / 1e18
-        setVaultPool(poolNum.toString())
-      }
-    } catch (e) {
-      console.error('查询Vault失败:', e)
+  // 使用 wagmi 读取合约数据
+  const { data: pendingData, refetch: refetchPending } = useReadContract({
+    address: vaultAddress,
+    abi: VAULT_ABI,
+    functionName: 'getPendingDividend',
+    args: address ? [address] : undefined,
+    query: {
+      enabled: !!address && vaultAddress && vaultAddress !== '0x0000000000000000000000000000000000000000'
     }
+  })
+
+  const { data: poolData, refetch: refetchPool } = useReadContract({
+    address: vaultAddress,
+    abi: VAULT_ABI,
+    functionName: 'dividendPool',
+    query: {
+      enabled: !!vaultAddress && vaultAddress !== '0x0000000000000000000000000000000000000000'
+    }
+  })
+
+  // 更新状态
+  useEffect(() => {
+    if (pendingData) {
+      setPendingDividend((Number(pendingData) / 1e18).toString())
+    }
+  }, [pendingData])
+
+  useEffect(() => {
+    if (poolData) {
+      setVaultPool((Number(poolData) / 1e18).toString())
+    }
+  }, [poolData])
+
+  // 领取后刷新数据
+  const refreshDividendData = () => {
+    refetchPending()
+    refetchPool()
   }
 
   useEffect(() => {
     if (isConnected && address) {
-      checkVaultDividend()
+      refetchPending()
+      refetchPool()
     }
   }, [isConnected, address, vaultAddress])
 
@@ -154,7 +159,7 @@ export default function Dividend() {
     if (isConfirmed) {
       setMessage('领取成功！')
       setClaiming(false)
-      checkVaultDividend()
+      refreshDividendData()
     }
   }, [isConfirmed])
 
