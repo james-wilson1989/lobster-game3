@@ -8,7 +8,7 @@
   "baseExpRequired": 100,
   "expMultiplier": 1.5,
   "gameContractAddress": "0x0000000000000000000000000000000000000000",
-  "vaultAddress": "0x01db37579e55ce13f4504019025e36047bdad845",
+  "vaultAddress": "0xd438f4760978cd799122a77c80ea6afd551d0ff9",
   "founderWallet": "0x01db37579e55ce13f4504019025e36047bdad845",
   "chainId": 97,
   "rpcUrl": "https://bsc-testnet.publicnode.com",

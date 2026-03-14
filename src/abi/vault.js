@@ -79,4 +79,4 @@ export const VAULT_ABI = [
 ]
 
 // 分红Vault合约地址（部署后填写）
-export const VAULT_ADDRESS = '0x0000000000000000000000000000000000000000'
+export const VAULT_ADDRESS = '0xd438f4760978cd799122a77c80ea6afd551d0ff9'
